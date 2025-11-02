@@ -38,13 +38,14 @@ const Home = () => {
             Get personalized AI career guidance, learning paths, and role recommendations — powered by advanced AI models.
           </Typography>
           <Stack direction="row" spacing={2} mt={3}>
-            <Button variant="contained" size="large">
+            <Button variant="contained" size="large"
+            onClick={()=>navigate('/login ')}>
               Get Started
             </Button>
             <Button
               variant="outlined"
               size="large"
-              onClick={() => navigate('/chat')}
+              onClick={() => navigate('/login')}
             >
               Try Chat
             </Button>

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Box, Typography, TextField, Button, Stack, Avatar } from '@mui/material';
-import robotAvatar from '../../assets/images/robot-avatar.png'; // Add your robot avatar image here
+import { Box, Typography, TextField, Button, Stack, Avatar, Paper, Divider } from '@mui/material';
+import robotAvatar from '../../assets/images/robot-avatar.png';
+import ChatIcon from '@mui/icons-material/Chat';
 
 const Chat = () => {
   const [messages, setMessages] = useState([
@@ -15,6 +16,7 @@ const Chat = () => {
     if (input.trim() === '') return;
     setMessages([...messages, { sender: 'user', text: input }]);
     setInput('');
+    // TODO: Add backend chat logic here
   };
 
   useEffect(() => {
@@ -22,32 +24,24 @@ const Chat = () => {
   }, [messages]);
 
   return (
-    <Box
-      sx={{
-        width: '100vw',
-        height: 'calc(100vh - 64px)',
-        bgcolor: '#f8fafc',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <Box
+    <Box sx={{ maxWidth: 700, mx: 'auto', width: '100%', py: 4 }}>
+      <Paper
+        elevation={4}
         sx={{
-          width: '100%',
-          maxWidth: 700,
-          height: '80vh',
+          p: 4,
+          borderRadius: 3,
+          bgcolor: '#fff',
           display: 'flex',
           flexDirection: 'column',
-          bgcolor: '#fff',
-          borderRadius: 3,
-          boxShadow: 4,
-          p: 0,
-          overflow: 'hidden',
+          alignItems: 'center',
         }}
       >
-        <Box sx={{ flex: 1, p: 4, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <Typography variant="h4" fontWeight={700} color="primary" gutterBottom>
+          <ChatIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+          Chat
+        </Typography>
+        <Divider sx={{ width: '100%', mb: 3 }} />
+        <Box sx={{ width: '100%', minHeight: 400, maxHeight: 300, overflowY: 'auto', mb: 2 }}>
           {messages.map((msg, idx) => (
             <Box
               key={idx}
@@ -55,25 +49,25 @@ const Chat = () => {
                 display: 'flex',
                 alignItems: 'flex-start',
                 justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start',
+                mb: 1,
               }}
             >
               {msg.sender === 'mentor' && (
                 <Avatar
                   src={robotAvatar}
                   alt="Mentor"
-                  sx={{ width: 48, height: 48, mr: 2, alignSelf: 'flex-start' }}
+                  sx={{ width: 36, height: 36, mr: 2, alignSelf: 'flex-start' }}
                 />
               )}
               <Box
                 sx={{
-                  bgcolor: '#f1f6fd',
+                  bgcolor: msg.sender === 'user' ? '#e3f0ff' : '#f1f6fd',
                   color: '#1a2a4a',
-                  px: 3,
-                  py: 2,
-                  borderRadius: 3,
-                  maxWidth: '80%',
-                  fontSize: '1.15rem',
-                  boxShadow: 0,
+                  px: 2,
+                  py: 1,
+                  borderRadius: 2,
+                  maxWidth: '75%',
+                  fontSize: '1rem',
                   ml: msg.sender === 'mentor' ? 0 : 'auto',
                 }}
               >
@@ -83,43 +77,40 @@ const Chat = () => {
           ))}
           <div ref={messagesEndRef} />
         </Box>
-        <Box sx={{ p: 3, borderTop: '1px solid #e0e7ef', bgcolor: '#f8fafc' }}>
-          <Stack direction="row" spacing={2}>
-            <TextField
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              placeholder="Type a message..."
-              variant="outlined"
-              fullWidth
-              size="large"
-              sx={{
-                bgcolor: '#fff',
-                borderRadius: 2,
-                '& .MuiOutlinedInput-root': { fontSize: '1.1rem' }
-              }}
-              onKeyDown={e => { if (e.key === 'Enter') handleSend(); }}
-            />
-            <Button
-              variant="contained"
-              onClick={handleSend}
-              size="large"
-              sx={{
-                bgcolor: '#4285f4',
-                color: '#fff',
-                fontWeight: 600,
-                px: 4,
-                borderRadius: 2,
-                textTransform: 'none',
-                fontSize: '1.1rem',
-                boxShadow: 0,
-                '&:hover': { bgcolor: '#357ae8' }
-              }}
-            >
-              Send
-            </Button>
-          </Stack>
-        </Box>
-      </Box>
+        <Stack direction="row" spacing={2} sx={{ width: '100%' }}>
+          <TextField
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            placeholder="Type a message..."
+            variant="outlined"
+            fullWidth
+            size="medium"
+            sx={{
+              bgcolor: '#fff',
+              borderRadius: 2,
+              '& .MuiOutlinedInput-root': { fontSize: '1rem' }
+            }}
+            onKeyDown={e => { if (e.key === 'Enter') handleSend(); }}
+          />
+          <Button
+            variant="contained"
+            onClick={handleSend}
+            sx={{
+              bgcolor: '#4285f4',
+              color: '#fff',
+              fontWeight: 600,
+              px: 3,
+              borderRadius: 2,
+              textTransform: 'none',
+              fontSize: '1rem',
+              boxShadow: 0,
+              '&:hover': { bgcolor: '#357ae8' }
+            }}
+          >
+            Send
+          </Button>
+        </Stack>
+      </Paper>
     </Box>
   );
 };
