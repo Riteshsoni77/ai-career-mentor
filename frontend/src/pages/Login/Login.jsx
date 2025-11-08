@@ -18,7 +18,8 @@ const Login = () => {
       const data = await res.json();
       if (res.ok) {
         alert(data.message);
-        navigate('/Dashborard');
+        localStorage.setItem('isLoggedIn', 'true'); // <-- Add this line
+        navigate('/dashboard');
       } else {
         alert(data.error || 'Login failed');
       }

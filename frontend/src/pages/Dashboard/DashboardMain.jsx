@@ -6,7 +6,7 @@ import ChatIcon from '@mui/icons-material/Chat';
 const DashboardMain = () => (
   <>
     <Typography variant="h6" color="text.secondary" sx={{ mb: 3 }}>
-      Welcome back! How can I assist you today?
+      Welcome to your Dashboard!
     </Typography>
     <Grid container spacing={3} sx={{ mb: 4 }}>
       <Grid item xs={12} md={6}>
