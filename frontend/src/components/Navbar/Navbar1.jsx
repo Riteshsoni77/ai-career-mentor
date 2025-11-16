@@ -34,7 +34,7 @@ const Navbar1 = () => (
           width: 180
         }}
       />
-      <IconButton>
+      <IconButton sx={{ pr: 6 }}>
         <Avatar />
       </IconButton>
     </Box>

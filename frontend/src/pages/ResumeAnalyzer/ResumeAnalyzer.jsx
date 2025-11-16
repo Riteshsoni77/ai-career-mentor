@@ -1,22 +1,40 @@
 // filepath: /Users/riteshsoni/Desktop/ai-career-mentor/frontend/src/pages/ResumeAnalyzer/ResumeAnalyzer.jsx
 import React, { useState } from 'react';
-import { Box, Typography, Button, Stack, Paper, Divider } from '@mui/material';
+import { Box, Typography, Button, Stack, Paper, Divider, TextField } from '@mui/material';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 
 const ResumeAnalyzer = () => {
   const [file, setFile] = useState(null);
+  const [jobDesc, setJobDesc] = useState('');
+  const [result, setResult] = useState(null);
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
   };
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (!file) {
       alert('Please select a resume to upload.');
       return;
     }
-    // TODO: Add upload logic here
-    alert(`Uploaded: ${file.name}`);
+    const formData = new FormData();
+    formData.append('resume', file);
+    formData.append('jobDesc', jobDesc);
+
+    try {
+      const res = await fetch('http://localhost:8080/api/analyze-resume', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setResult(data.result);
+      } else {
+        alert(data.error || 'Upload failed');
+      }
+    } catch (err) {
+      alert('Network error');
+    }
   };
 
   return (
@@ -56,6 +74,17 @@ const ResumeAnalyzer = () => {
               Selected file: <b>{file.name}</b>
             </Typography>
           )}
+          <TextField
+            label="Job Description"
+            multiline
+            rows={4}
+            value={jobDesc}
+            onChange={e => setJobDesc(e.target.value)}
+            variant="outlined"
+            fullWidth
+            sx={{ mt: 2 }}
+            placeholder="Paste the job description here"
+          />
           <Button
             variant="contained"
             color="primary"
@@ -65,6 +94,18 @@ const ResumeAnalyzer = () => {
           >
             Upload Resume
           </Button>
+          {result && (
+            <Box sx={{ mt: 3 }}>
+              <Typography variant="h6" color="primary">Resume Summary:</Typography>
+              <Typography variant="body2">{result.summary}</Typography>
+              <Typography variant="h6" color="primary" sx={{ mt: 2 }}>ATS Score:</Typography>
+              <Typography variant="body2">{result.ats_score}</Typography>
+              <Typography variant="h6" color="primary" sx={{ mt: 2 }}>Feedback:</Typography>
+              <Typography variant="body2">{result.feedback}</Typography>
+              <Typography variant="h6" color="primary" sx={{ mt: 2 }}>Mentor Recommendation:</Typography>
+              <Typography variant="body2">{result.mentor_recommendation}</Typography>
+            </Box>
+          )}
         </Stack>
       </Paper>
     </Box>
