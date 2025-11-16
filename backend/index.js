@@ -6,6 +6,9 @@ const mysql = require('mysql2');
 const multer = require('multer');
 const { spawn } = require('child_process');
 const path = require('path');
+const { extractText } = require('./extract_text');
+// const { generateText } = require('./gemini_client'); // Comment out or remove Gemini
+const { generateGroqText } = require('./groq_client'); // Use the new Groq client
 const app = express();
 
 app.use(cors());
@@ -60,89 +63,99 @@ app.post('/login', async (req, res) => {
   );
 });
 
-const upload = multer({ dest: 'uploads/' });
+// Multer setup for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname);
+  }
+});
+const upload = multer({ storage: storage });
 
-// choose the venv python you created
-const pythonBin = process.env.PYTHON_BIN || '/Users/riteshsoni/.ai-career-mentor-venv/bin/python';
+// Resume analysis route - UPDATED FOR GROQ
+app.post('/api/analyze-resume', upload.single('resume'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No resume file uploaded.' });
+  }
 
-app.post('/api/analyze-resume', upload.single('resume'), (req, res) => {
-    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-
+  try {
     const filePath = req.file.path;
-    const jobDesc = req.body.jobDesc || '';
+    const jobDesc = req.body.jobDesc || 'No job description provided.';
 
-    const scriptPath = path.join(__dirname, 'analyze_resume.py');
-    const args = [scriptPath, filePath, jobDesc];
+    const resumeText = await extractText(filePath);
 
-    // inherit existing env (including GEMINI_API_KEY from .env or shell)
-    const child = spawn(pythonBin, args, { env: { ...process.env } });
+    console.log("Extracted resume text:", resumeText);
 
-    let stdout = '';
-    let stderr = '';
+    if (!resumeText || resumeText.length < 50) {
+      console.error("Resume extraction failed or text too short:", resumeText);
+      return res.status(400).json({
+        error: 'Failed to extract sufficient text from resume. Please upload a valid text-based PDF or DOCX file.'
+      });
+    }
 
-    child.stdout.on('data', (data) => { stdout += data.toString(); });
-    child.stderr.on('data', (d) => {
-      const s = d.toString();
-      stderr += s;
-      console.error('Python stderr:', s);
-    });
+    const MAX_RESUME_LENGTH = 4000;
+    let truncatedResumeText = resumeText;
+    if (resumeText.length > MAX_RESUME_LENGTH) {
+      truncatedResumeText = resumeText.slice(0, MAX_RESUME_LENGTH) + '\n...[truncated]';
+    }
 
-    child.on('error', (err) => {
-      console.error('Failed to start python process:', err);
-      return res.status(500).json({ error: 'Failed to start python process', detail: err.message });
-    });
+    const messages = [
+      {
+        role: 'system',
+        content: `
+You are an ATS resume analyzer. Your ONLY task is to return a single, valid JSON object with the following fields:
 
-    child.on('close', (code) => {
-      // no stdout -> surface stderr
-      if (!stdout || stdout.trim().length === 0) {
-        const msg = stderr || `Python exited with code ${code} and no output`;
-        return res.status(500).json({ error: msg, code });
-      }
+{
+  "ats_score": "",
+  "skill_match": { "matched_skills": [], "missing_skills": [] },
+  "missing_sections": { "missing": [], "present": [] },
+  "resume_quality_score": "",
+  "keyword_optimization": { "found_keywords": [], "missing_keywords": [] },
+  "experience_fit_summary": ""
+}
 
-      try {
-        const parsed = JSON.parse(stdout);
-        return res.json(parsed);
-      } catch (e) {
-        console.error('JSON parse error:', e.message);
-        return res.status(500).json({
-          error: 'Invalid JSON from analyzer',
-          parseError: e.message,
-          rawStdout: stdout,
-          rawStderr: stderr,
-          code
-        });
-      }
-    });
-});
-
-// lightweight health endpoint to validate python + spaCy + model
-app.get('/python-health', (req, res) => {
-  const checkCmd = [
-    '-c',
-    `
-import sys
-try:
-    import spacy
-    try:
-        nlp = spacy.load("en_core_web_sm")
-        print("OK: spaCy " + spacy.__version__ + " - model loaded")
-    except Exception as me:
-        print("ERR_MODEL:" + str(me))
-        sys.exit(2)
-except Exception as e:
-    print("ERR_SPACY:" + str(e))
-    sys.exit(1)
+IMPORTANT:
+- Output ONLY valid JSON, nothing else.
+- Do NOT include any explanation, reasoning, or commentary.
+- If you cannot calculate a field, use null or an empty array.
 `
-  ];
-  const child = spawn(pythonBin, checkCmd, { env: { ...process.env } });
-  let out = '';
-  let err = '';
-  child.stdout.on('data', d => out += d.toString());
-  child.stderr.on('data', d => err += d.toString());
-  child.on('close', code => {
-    if (code === 0) return res.json({ ok: true, message: out.trim() });
-    return res.status(500).json({ ok: false, code, stdout: out.trim(), stderr: err.trim() });
-  });
+      },
+      {
+        role: 'user',
+        content: `Resume:\n${truncatedResumeText}\n\nJob Description:\n${jobDesc}`
+      }
+    ];
+
+    const model = 'openai/gpt-oss-20b'; // Use a Groq-supported model
+    const maxTokens = 1000; // Increase token limit
+
+    const { raw } = await generateGroqText(messages, { model, maxTokens });
+
+    let result;
+    try {
+      result = JSON.parse(raw);
+    } catch (err) {
+      const match = raw.match(/\{[^}]+\}/);
+      if (match) {
+        try {
+          result = JSON.parse(match[0]);
+        } catch {
+          result = { error: "AI model returned invalid JSON.", raw_response: raw };
+        }
+      } else {
+        result = { error: "AI model returned invalid JSON.", raw_response: raw };
+      }
+    }
+
+    res.json({ result });
+  } catch (err) {
+    console.error('Resume analysis failed:', err.stack || err);
+    res.status(500).json({ error: 'Resume analysis failed on the server.' });
+  }
 });
 
-app.listen(8080, () => console.log('Backend running on port 8080'));
+
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
