@@ -1,8 +1,9 @@
+// filepath: /Users/riteshsoni/Desktop/ai-career-mentor1/backend/groq_client.js
 const fetch = (...args) => import('node-fetch').then(mod => mod.default(...args));
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
-async function generateGroqText(messages, { model = 'openai/gpt-oss-20b', maxTokens = 1500 } = {}) {
+async function generateGroqText(messages, { model = 'openai/gpt-oss-20b', maxTokens = 512 } = {}) {
   if (!GROQ_API_KEY) {
     throw new Error('GROQ_API_KEY not set in env');
   }

@@ -1,0 +1,23 @@
+app.post('/api/chatbot', async (req, res) => {
+  const { message } = req.body;
+
+  if (!message) {
+    return res.status(400).json({ error: 'No message provided.' });
+  }
+
+  const messages = [
+    { role: 'system', content: 'You are a career advice assistant. Provide helpful, concise, and actionable career advice to the user.' },
+    { role: 'user', content: message }
+  ];
+
+  try {
+    const model = 'openai/gpt-oss-20b'; // Use a Groq-supported model
+    const maxTokens = 500;
+
+    const { raw } = await generateGroqText(messages, { model, maxTokens });
+    res.json({ response: raw });
+  } catch (err) {
+    console.error('Chatbot failed:', err.stack || err);
+    res.status(500).json({ error: 'Chatbot failed on the server.' });
+  }
+});

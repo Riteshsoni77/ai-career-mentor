@@ -156,6 +156,28 @@ IMPORTANT:
   }
 });
 
+// Chatbot route
+app.post('/api/chatbot', async (req, res) => {
+  console.log('Received request:', req.body); // Log the incoming request
+  const { message } = req.body;
+
+  if (!message) {
+    return res.status(400).json({ error: 'No message provided.' });
+  }
+
+  const messages = [
+    { role: 'system', content: 'You are a career advice assistant. Provide helpful, concise, and actionable career advice to the user.' },
+    { role: 'user', content: message }
+  ];
+
+  try {
+    const { raw } = await generateGroqText(messages, { model: 'openai/gpt-oss-20b', maxTokens: 1500 });
+    res.json({ response: raw });
+  } catch (err) {
+    console.error('Chatbot failed:', err.stack || err);
+    res.status(500).json({ error: 'Chatbot failed on the server.' });
+  }
+});
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));

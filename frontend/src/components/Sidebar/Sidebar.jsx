@@ -14,7 +14,8 @@ const Sidebar = ({ active }) => {
     <Box sx={{
       width: 240,
       bgcolor: '#f7f9fb',
-      pt: 4, // Top padding for space below Navbar1
+      pt: 4,
+      pl:4, // Top padding for space below Navbar1
       minHeight: '100vh',
       borderRight: '1px solid #e0e0e0',
       display: 'flex',

@@ -2,21 +2,42 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Box, Typography, TextField, Button, Stack, Avatar, Paper, Divider } from '@mui/material';
 import robotAvatar from '../../assets/images/robot-avatar.png';
 import ChatIcon from '@mui/icons-material/Chat';
+import axios from 'axios';
+import ReactMarkdown from 'react-markdown';
 
 const Chat = () => {
   const [messages, setMessages] = useState([
-    { sender: 'mentor', text: "Hello! I'm the AI Career Mentor. How can I assist you today?" },
-    { sender: 'user', text: "I'm looking for guidance on transitioning from engineering to a career in AI." },
-    { sender: 'mentor', text: "Great! Let's explore the steps and skills needed for a successful transition to AI." }
+    {
+      role: 'system',
+      content: `
+Hello! 👋 I'm your coding mentor bot. I'm here to:
+- Help you with programming questions.
+- Provide code examples.
+- Guide you through coding challenges.
+
+Feel free to ask me anything related to coding, and I'll do my best to assist you! 🚀
+      `,
+    },
   ]);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef(null);
+  const maxTokens = 2000; // Increase token limit
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (input.trim() === '') return;
-    setMessages([...messages, { sender: 'user', text: input }]);
+    const userMessage = { role: 'user', content: input };
+    setMessages(prevMessages => [...prevMessages, userMessage]);
     setInput('');
-    // TODO: Add backend chat logic here
+
+    try {
+      const res = await axios.post('/api/chatbot', { message: input });
+      const botMessage = { role: 'system', content: res.data.response };
+      setMessages(prevMessages => [...prevMessages, botMessage]);
+    } catch (err) {
+      console.error('Error sending message:', err.response || err.message);
+      const errorMessage = { role: 'system', content: 'Failed to get a response. Please try again.' };
+      setMessages(prevMessages => [...prevMessages, errorMessage]);
+    }
   };
 
   useEffect(() => {
@@ -48,11 +69,11 @@ const Chat = () => {
               sx={{
                 display: 'flex',
                 alignItems: 'flex-start',
-                justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start',
+                justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start',
                 mb: 1,
               }}
             >
-              {msg.sender === 'mentor' && (
+              {msg.role === 'system' && (
                 <Avatar
                   src={robotAvatar}
                   alt="Mentor"
@@ -61,17 +82,38 @@ const Chat = () => {
               )}
               <Box
                 sx={{
-                  bgcolor: msg.sender === 'user' ? '#e3f0ff' : '#f1f6fd',
+                  bgcolor: msg.role === 'user' ? '#e3f0ff' : '#f1f6fd',
                   color: '#1a2a4a',
                   px: 2,
                   py: 1,
                   borderRadius: 2,
                   maxWidth: '75%',
                   fontSize: '1rem',
-                  ml: msg.sender === 'mentor' ? 0 : 'auto',
+                  ml: msg.role === 'system' ? 0 : 'auto',
+                  '& ul': {
+                    paddingLeft: '20px',
+                    margin: '10px 0',
+                    listStyleType: 'disc',
+                  },
+                  '& ol': {
+                    paddingLeft: '20px',
+                    margin: '10px 0',
+                    listStyleType: 'decimal',
+                  },
+                  '& h1, & h2, & h3': {
+                    margin: '10px 0',
+                    fontWeight: 'bold',
+                  },
+                  '& p': {
+                    margin: '10px 0',
+                  },
                 }}
               >
-                {msg.text}
+                {msg.role === 'system' ? (
+                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                ) : (
+                  msg.content
+                )}
               </Box>
             </Box>
           ))}
@@ -116,3 +158,4 @@ const Chat = () => {
 };
 
 export default Chat;
+

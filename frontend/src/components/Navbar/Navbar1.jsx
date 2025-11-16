@@ -10,6 +10,7 @@ const Navbar1 = () => (
     justifyContent: 'space-between',
     pr: 190,
     py: 2,
+    pl: 4,
     bgcolor: '#f5f7fa',
     borderBottom: '1px solid #e0e0e0',
     position: 'sticky',
